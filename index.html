@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SnowyOS</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="bg">
+    <div class="aurora a1"></div>
+    <div class="aurora a2"></div>
+    <div class="aurora a3"></div>
+    <div class="grain"></div>
+  </div>
+
+  <div class="lock-screen" id="lock-screen">
+    <div class="lock-content">
+      <div class="lock-avatar">❄</div>
+      <div class="lock-user">Guest</div>
+      <div class="lock-time" id="lock-time"></div>
+      <div class="lock-date" id="lock-date"></div>
+      <button class="primary" id="btn-unlock">Enter SnowyOS</button>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">◆</div>
+      <div class="brand-name">SnowyOS</div>
+    </div>
+    <div class="top-actions">
+      <div class="pill live-indicator">
+        <span class="dot"></span>
+        <span class="pill-label">Session Live</span>
+      </div>
+      <div class="pill" id="clock"></div>
+      <button class="icon-btn" id="btn-start" aria-label="Start menu">❄</button>
+      <button class="icon-btn" id="btn-workspaces" aria-label="Workspaces">⊞</button>
+      <button class="icon-btn" id="btn-control" aria-label="Open control center">☰</button>
+      <button class="icon-btn" id="btn-notify" aria-label="Notifications">
+        ✦
+        <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+      </button>
+      <div class="user-chip" id="user-chip">
+        <span class="user-avatar">❄</span>
+        <span class="user-name">Guest</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="start-menu" id="start-menu">
+    <div class="start-search">
+      <input type="text" placeholder="Search apps, files..." id="start-search-input">
+    </div>
+    <div class="start-section">
+      <div class="start-section-title">Pinned</div>
+      <div class="start-grid" id="start-pinned"></div>
+    </div>
+    <div class="start-section">
+      <div class="start-section-title">All Apps</div>
+      <div class="start-list" id="start-all"></div>
+    </div>
+    <div class="start-footer">
+      <div class="user-chip small">
+        <span class="user-avatar">❄</span>
+        <span class="user-name">Guest</span>
+      </div>
+      <button class="icon-btn" id="btn-lock" aria-label="Lock screen">⏻</button>
+    </div>
+  </div>
+
+  <div class="workspaces-panel" id="workspaces-panel">
+    <div class="workspaces-header">Workspaces</div>
+    <div class="workspaces-grid" id="workspaces-grid"></div>
+    <button class="primary small" id="btn-add-workspace">+ New Workspace</button>
+  </div>
+
+  <div class="notification-center" id="notification-center">
+    <div class="nc-header">
+      <div class="title">Notifications</div>
+      <button class="pill subtle" id="btn-clear-notifs">Clear All</button>
+    </div>
+    <div class="nc-list" id="nc-list"></div>
+  </div>
+
+  <main class="desktop" id="desktop">
+    <section class="hero">
+      <p class="eyebrow">Browser-native OS concept</p>
+      <h1>SnowyOS</h1>
+      <p class="lede">A shimmering, glassy playground with floating apps, playful motion, and a calm northlight palette.</p>
+      <div class="hero-actions">
+        <button class="primary" id="btn-launch">Launch desktop</button>
+        <button class="ghost" id="btn-tour">Quick tour</button>
+      </div>
+    </section>
+
+    <section class="widget-grid">
+      <article class="card stat">
+        <div class="stat-top">
+          <span class="pill subtle">Now</span>
+          <span class="stat-label">System Pulse</span>
+        </div>
+        <div class="stat-figure">
+          <span class="big" id="cpu">27%</span>
+          <span class="muted">CPU</span>
+        </div>
+        <div class="sparkline" id="sparkline"></div>
+      </article>
+
+      <article class="card weather">
+        <div class="card-head">
+          <span class="pill subtle">Hudson Valley</span>
+          <span class="muted" id="weather-time"></span>
+        </div>
+        <div class="weather-main">
+          <div class="temp" id="temp">27°F</div>
+          <div class="conditions">
+            <div class="muted">Condition</div>
+            <div class="pill">Snow flurries</div>
+            <div class="muted">Feels like 23°F</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card player">
+        <div class="card-head">
+          <span class="pill subtle">Now Playing</span>
+          <span class="pill">Lo-fi Aurora</span>
+        </div>
+        <div class="track">
+          <div class="track-info">
+            <div class="title">Glacier Glow</div>
+            <div class="muted">by Polar Echoes</div>
+          </div>
+          <div class="controls">
+            <button class="circle">⏮</button>
+            <button class="circle primary">⏯</button>
+            <button class="circle">⏭</button>
+          </div>
+        </div>
+        <div class="progress">
+          <div class="progress-bar" id="music-progress"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="dock" aria-label="App dock">
+      <button class="dock-icon" data-app="files">📁<span>Files</span></button>
+      <button class="dock-icon" data-app="notes">📝<span>Notes</span></button>
+      <button class="dock-icon" data-app="browser">🌐<span>Browser</span></button>
+      <button class="dock-icon" data-app="terminal">⌘<span>Terminal</span></button>
+      <button class="dock-icon" data-app="sketch">🎨<span>Paint</span></button>
+      <button class="dock-icon" data-app="settings">⚙<span>Settings</span></button>
+      <button class="dock-icon" data-app="chat">💬<span>Chat</span></button>
+      <button class="dock-icon" data-app="calculator">🧮<span>Calc</span></button>
+      <button class="dock-icon" data-app="snake">🐍<span>Snake</span></button>
+      <button class="dock-icon" data-app="tetris">🧱<span>Tetris</span></button>
+      <button class="dock-icon" data-app="game2048">🔢<span>2048</span></button>
+      <button class="dock-icon" data-app="minesweeper">💣<span>Mines</span></button>
+      <button class="dock-icon" data-app="music">🎵<span>Music</span></button>
+      <button class="dock-icon" data-app="calendar">📅<span>Calendar</span></button>
+      <button class="dock-icon" data-app="sysmon">📊<span>Monitor</span></button>
+    </section>
+  </main>
+
+  <div class="taskbar" id="taskbar"></div>
+
+  <div class="control-center" id="control-center">
+    <div class="cc-header">
+      <div>
+        <div class="muted">Control Center</div>
+        <div class="title">Quick toggles</div>
+      </div>
+      <button class="icon-btn" id="btn-close-cc">✕</button>
+    </div>
+    <div class="cc-grid">
+      <div class="cc-card">
+        <div class="muted">Brightness</div>
+        <input type="range" min="20" max="100" value="80" id="range-brightness">
+      </div>
+      <div class="cc-card">
+        <div class="muted">Volume</div>
+        <input type="range" min="0" max="100" value="50" id="range-volume">
+      </div>
+      <div class="cc-card">
+        <div class="muted">Christmas Theme</div>
+        <button class="pill toggle" data-toggle="christmas">Off</button>
+      </div>
+      <div class="cc-card">
+        <div class="muted">Focus</div>
+        <button class="pill toggle" data-toggle="focus">On</button>
+      </div>
+      <div class="cc-card">
+        <div class="muted">Snow Mode</div>
+        <button class="pill toggle" data-toggle="snow">Enabled</button>
+      </div>
+      <div class="cc-card">
+        <div class="muted">Night Shift</div>
+        <button class="pill toggle" data-toggle="night">Off</button>
+      </div>
+      <div class="cc-card">
+        <div class="muted">Animations</div>
+        <button class="pill toggle" data-toggle="anim">Enabled</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="context-menu" id="context-menu"></div>
+
+  <div class="window-layer" id="windows"></div>
+
+  <template id="window-template">
+    <div class="window">
+      <div class="window-bar">
+        <div class="window-dots">
+          <button class="dot close"></button>
+          <button class="dot min"></button>
+          <button class="dot max"></button>
+        </div>
+        <div class="window-title"></div>
+        <div class="window-actions">
+          <button class="pill ghost window-pin">Pin</button>
+        </div>
+      </div>
+      <div class="window-body"></div>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
