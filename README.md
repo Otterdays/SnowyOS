@@ -2,7 +2,7 @@
 
 > A shimmering, glassy browser-native desktop OS concept with floating apps, playful motion, and a calm northlight palette.
 
-**Version:** 2.0.0  
+**Version:** 3.0.0  
 **Tech:** Vanilla HTML5, CSS3, ES5+ JavaScript  
 **Dependencies:** Zero  
 **Build:** None required — just open `index.html` in a browser
@@ -30,7 +30,7 @@
 - **Z-Ordering** — Click to bring to front
 - **Resizable** — Maximize fills viewport
 
-### Built-in Apps (15 total)
+### Built-in Apps (18 total)
 
 #### Productivity
 | App | Description |
@@ -38,13 +38,16 @@
 | **Files** | Virtual file system browser with directories and recent files |
 | **Notes** | Text editor with auto-save to localStorage |
 | **Browser** | Mock search UI with filterable results |
-| **Terminal** | Full shell with 20+ commands (help, neofetch, cowsay, matrix, hack, etc.) |
+| **Terminal** | Full shell with 25+ commands (help, neofetch, cowsay, matrix, hack, ip, ping, roll, joke, etc.) |
 | **Paint** | Drawing canvas with brush, eraser, line, rectangle, circle tools, color picker, size control, save/export |
 | **Calculator** | Full calculator with +, −, ×, ÷, %, ±, backspace |
 | **Calendar** | Monthly calendar view with navigation, today highlight |
 | **Music** | Music player with playlist, play/pause, next/prev, progress bar, spinning album art |
 | **System Monitor** | Live CPU, memory, disk, network stats with progress bars |
 | **Settings** | Theme picker (6 themes), username, system info, data export/clear |
+| **Weather** | Weather dashboard with current conditions, 5-day forecast, humidity and wind data |
+| **Tasks** | Todo list manager with add/complete/delete, persistent storage, progress tracking |
+| **Photos** | Photo gallery with gradient thumbnails and click-to-view interface |
 
 #### Games
 | App | Description |
@@ -168,6 +171,10 @@ AppRenderers.myapp = {
 | `matrix` | Matrix rain effect |
 | `hack` | Fake hack sequence |
 | `color` | Show color palette |
+| `ip` | Show random IP address |
+| `ping <host>` | Ping a host |
+| `roll <sides>` | Roll a dice |
+| `joke` | Random programming joke |
 
 ---
 
@@ -191,6 +198,7 @@ All data stored in `localStorage`:
 - `snowy-notifications` — Notification history
 - `snowy-snake-best` — Snake high score
 - `snowy-2048-best` — 2048 high score
+- `snowy-tasks` — Task list
 
 Export all data via Settings → Export Data (downloads JSON).
 

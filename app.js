@@ -87,7 +87,7 @@
       win.style.left = (80 + Math.random() * (window.innerWidth - w - 160)) + "px";
       win.style.top = (60 + Math.random() * (window.innerHeight - h - 200)) + "px";
       win.style.zIndex = ++this.zIndex;
-      this.wireControls(win, id); this.makeDraggable(win);
+      this.wireControls(win, id); this.makeDraggable(win); this.makeResizable(win);
       document.getElementById("windows").appendChild(win);
       this.windows.set(id, { el: win, app: appName, title: title, pinned: false, minimized: false });
       this.updateTaskbar(); EventBus.emit("window-open", { id: id, app: appName, title: title });
@@ -112,15 +112,60 @@
       var dragging = false, startX, startY, origX, origY;
       bar.onmousedown = function(e) {
         if (e.target.closest(".dot, .window-pin")) return;
+        if (win.classList.contains("maximized")) return;
         dragging = true; startX = e.clientX; startY = e.clientY;
         origX = win.offsetLeft; origY = win.offsetTop; bar.style.cursor = "grabbing";
       };
       document.addEventListener("mousemove", function(e) {
         if (!dragging) return;
         win.style.left = (origX + e.clientX - startX) + "px";
-        win.style.top = (origY + e.clientY - startY) + "px";
+        win.style.top = Math.max(60, origY + e.clientY - startY) + "px";
+        var snapPreview = document.getElementById("snap-preview");
+        if (!snapPreview) { snapPreview = document.createElement("div"); snapPreview.id = "snap-preview"; snapPreview.className = "snap-preview"; document.body.appendChild(snapPreview); }
+        if (e.clientX < 8) { snapPreview.className = "snap-preview left active"; }
+        else if (e.clientX > window.innerWidth - 8) { snapPreview.className = "snap-preview right active"; }
+        else { snapPreview.className = "snap-preview"; }
       });
-      document.addEventListener("mouseup", function() { dragging = false; bar.style.cursor = "grab"; });
+      document.addEventListener("mouseup", function(e) {
+        if (!dragging) return;
+        dragging = false; bar.style.cursor = "grab";
+        var snapPreview = document.getElementById("snap-preview");
+        if (snapPreview) snapPreview.className = "snap-preview";
+        if (e.clientX < 8) {
+          win.style.left = "10px"; win.style.top = "60px";
+          win.style.width = (window.innerWidth / 2 - 15) + "px";
+          win.style.height = (window.innerHeight - 160) + "px";
+        } else if (e.clientX > window.innerWidth - 8) {
+          win.style.left = (window.innerWidth / 2 + 5) + "px"; win.style.top = "60px";
+          win.style.width = (window.innerWidth / 2 - 15) + "px";
+          win.style.height = (window.innerHeight - 160) + "px";
+        }
+      });
+    },
+    makeResizable: function(win) {
+      var MIN_W = 300, MIN_H = 200;
+      win.querySelectorAll(".rh").forEach(function(h) {
+        var resizing = false, dir, startX, startY, startW, startH, startL, startT;
+        h.onmousedown = function(e) {
+          e.preventDefault(); e.stopPropagation();
+          if (win.classList.contains("maximized")) return;
+          resizing = true;
+          dir = h.dataset.dir;
+          startX = e.clientX; startY = e.clientY;
+          startW = win.offsetWidth; startH = win.offsetHeight;
+          startL = win.offsetLeft; startT = win.offsetTop;
+          document.body.style.cursor = getComputedStyle(h).cursor;
+        };
+        document.addEventListener("mousemove", function(e) {
+          if (!resizing) return;
+          var dx = e.clientX - startX, dy = e.clientY - startY;
+          if (dir.includes("e")) win.style.width = Math.max(MIN_W, startW + dx) + "px";
+          if (dir.includes("s")) win.style.height = Math.max(MIN_H, startH + dy) + "px";
+          if (dir.includes("w")) { var nw = Math.max(MIN_W, startW - dx); win.style.width = nw + "px"; win.style.left = (startL + startW - nw) + "px"; }
+          if (dir.includes("n")) { var nh = Math.max(MIN_H, startH - dy); win.style.height = nh + "px"; win.style.top = (startT + startH - nh) + "px"; }
+        });
+        document.addEventListener("mouseup", function() { if (resizing) { resizing = false; document.body.style.cursor = ""; } });
+      });
     },
     updateTaskbar: function() {
       var tb = document.getElementById("taskbar");
@@ -211,8 +256,117 @@
     { id: "music", name: "Music", emoji: "🎵" }, { id: "calendar", name: "Calendar", emoji: "📅" },
     { id: "sysmon", name: "Monitor", emoji: "📊" }, { id: "snake", name: "Snake", emoji: "🐍" },
     { id: "tetris", name: "Tetris", emoji: "🧱" }, { id: "game2048", name: "2048", emoji: "🔢" },
-    { id: "minesweeper", name: "Minesweeper", emoji: "💣" }
+    { id: "minesweeper", name: "Minesweeper", emoji: "💣" }, { id: "weather", name: "Weather", emoji: "🌤" },
+    { id: "photos", name: "Photos", emoji: "🖼" }, { id: "tasks", name: "Tasks", emoji: "✅" },
+    { id: "clock", name: "Clock", emoji: "🕐" }
   ];
+
+  var Spotlight = {
+    open: false,
+    init: function() {
+      var overlay = document.getElementById("spotlight");
+      var input = document.getElementById("spotlight-input");
+      var results = document.getElementById("spotlight-results");
+      var self = this;
+      overlay.onclick = function(e) { if (e.target === overlay) self.close(); };
+      input.oninput = function() { self.search(input.value); };
+      input.onkeydown = function(e) {
+        if (e.key === "Escape") { self.close(); return; }
+        if (e.key === "Enter") {
+          var first = results.querySelector(".sl-item");
+          if (first) first.click();
+        }
+        if (e.key === "ArrowDown") { e.preventDefault(); var items = results.querySelectorAll(".sl-item"); var idx = Array.from(items).findIndex(function(i) { return i.classList.contains("focused"); }); items.forEach(function(i) { i.classList.remove("focused"); }); if (idx < items.length - 1) items[idx + 1].classList.add("focused"); }
+        if (e.key === "ArrowUp") { e.preventDefault(); var items = results.querySelectorAll(".sl-item"); var idx = Array.from(items).findIndex(function(i) { return i.classList.contains("focused"); }); items.forEach(function(i) { i.classList.remove("focused"); }); if (idx > 0) items[idx - 1].classList.add("focused"); }
+      };
+    },
+    toggle: function() { this.open ? this.close() : this.show(); },
+    show: function() {
+      this.open = true;
+      var overlay = document.getElementById("spotlight");
+      var input = document.getElementById("spotlight-input");
+      overlay.classList.add("active");
+      input.value = ""; this.search("");
+      setTimeout(function() { input.focus(); }, 50);
+    },
+    close: function() {
+      this.open = false;
+      document.getElementById("spotlight").classList.remove("active");
+    },
+    search: function(q) {
+      var results = document.getElementById("spotlight-results");
+      var matches = allApps.filter(function(a) { return !q || a.name.toLowerCase().includes(q.toLowerCase()); });
+      var actions = [
+        { label: "Lock Screen", icon: "⏻", action: function() { document.getElementById("btn-lock").click(); } },
+        { label: "Settings", icon: "⚙", action: function() { openApp("settings"); } },
+        { label: "New Workspace", icon: "⊞", action: function() { document.getElementById("btn-add-workspace").click(); } }
+      ].filter(function(a) { return !q || a.label.toLowerCase().includes(q.toLowerCase()); });
+      var html = "";
+      if (matches.length) {
+        html += '<div class="sl-section">Apps</div>';
+        matches.slice(0, 8).forEach(function(a) { html += '<button class="sl-item" data-app="' + a.id + '">' + a.emoji + ' <span>' + a.name + '</span></button>'; });
+      }
+      if (actions.length) {
+        html += '<div class="sl-section">Actions</div>';
+        actions.forEach(function(a, i) { html += '<button class="sl-item sl-action" data-action="' + i + '">' + a.icon + ' <span>' + a.label + '</span></button>'; });
+      }
+      if (!matches.length && !actions.length) html = '<div class="sl-empty">No results for "' + q + '"</div>';
+      results.innerHTML = html;
+      var self = this;
+      results.querySelectorAll("[data-app]").forEach(function(btn) {
+        btn.onclick = function() { openApp(btn.dataset.app); self.close(); };
+      });
+      var actionsFiltered = actions;
+      results.querySelectorAll("[data-action]").forEach(function(btn) {
+        btn.onclick = function() { actionsFiltered[parseInt(btn.dataset.action)].action(); self.close(); };
+      });
+      if (results.firstElementChild) results.querySelector(".sl-item") && results.querySelector(".sl-item").classList.add("focused");
+    }
+  };
+
+  var DesktopIcons = {
+    _dragging: null,
+    _icons: JSON.parse(localStorage.getItem("snowy-desktop-icons") || "null") || [
+      { app: "files", x: 24, y: 80 },
+      { app: "notes", x: 24, y: 170 },
+      { app: "terminal", x: 24, y: 260 },
+      { app: "settings", x: 24, y: 350 },
+      { app: "clock", x: 24, y: 440 }
+    ],
+    save: function() { localStorage.setItem("snowy-desktop-icons", JSON.stringify(this._icons)); },
+    render: function() {
+      var layer = document.getElementById("icon-layer"); if (!layer) return;
+      layer.innerHTML = "";
+      var self = this;
+      this._icons.forEach(function(icon, idx) {
+        var appInfo = allApps.find(function(a) { return a.id === icon.app; });
+        if (!appInfo) return;
+        var el = document.createElement("div");
+        el.className = "desktop-icon"; el.style.left = icon.x + "px"; el.style.top = icon.y + "px";
+        el.innerHTML = '<div class="di-emoji">' + appInfo.emoji + '</div><div class="di-label">' + appInfo.name + '</div>';
+        var lastClick = 0;
+        el.onmousedown = function(e) {
+          e.stopPropagation();
+          var now = Date.now();
+          if (now - lastClick < 400) { openApp(icon.app); return; }
+          lastClick = now;
+          self._dragging = { el: el, icon: icon, startX: e.clientX, startY: e.clientY, origX: icon.x, origY: icon.y };
+          el.classList.add("dragging");
+        };
+        layer.appendChild(el);
+      });
+      document.addEventListener("mousemove", function(e) {
+        if (!self._dragging) return;
+        var d = self._dragging;
+        d.icon.x = Math.max(0, d.origX + e.clientX - d.startX);
+        d.icon.y = Math.max(70, d.origY + e.clientY - d.startY);
+        d.el.style.left = d.icon.x + "px"; d.el.style.top = d.icon.y + "px";
+      });
+      document.addEventListener("mouseup", function() {
+        if (self._dragging) { self._dragging.el.classList.remove("dragging"); self.save(); self._dragging = null; }
+      });
+    }
+  };
 
   function populateStartMenu(filter) {
     filter = filter || "";
@@ -290,7 +444,7 @@
         else if (action === "settings") openApp("settings");
         else if (action === "terminal") openApp("terminal");
         else if (action === "notes") openApp("notes");
-        else if (action === "about") toast("SnowyOS v2.0 — Browser-native OS concept");
+        else if (action === "about") toast("SnowyOS v3.0 — Browser-native OS concept");
         menu.classList.remove("visible");
       };
     });
@@ -300,8 +454,9 @@
     if (e.ctrlKey && e.key === "e") { e.preventDefault(); openApp("terminal"); }
     if (e.ctrlKey && e.key === "n") { e.preventDefault(); openApp("notes"); }
     if (e.ctrlKey && e.key === "s") { e.preventDefault(); openApp("settings"); }
-    if (e.key === "Escape") closeAllPanels();
+    if (e.key === "Escape") { closeAllPanels(); Spotlight.close(); }
     if (e.ctrlKey && e.shiftKey && e.key === "L") { e.preventDefault(); document.getElementById("btn-lock").click(); }
+    if ((e.ctrlKey && e.key === " ") || (e.metaKey && e.key === " ")) { e.preventDefault(); Spotlight.toggle(); }
   });
 
   document.querySelectorAll(".dock-icon").forEach(function(icon) {
@@ -392,8 +547,8 @@
           var parts = cmd.split(" "); var co = parts[0].toLowerCase(); var args = parts.slice(1);
           switch (co) {
             case "": break;
-            case "help": print("Commands: help, about, time, date, ls, cat, echo, clear, neofetch, uptime, whoami, uname, pwd, calc, fortune, cowsay, matrix, hack, color", "var(--warning)"); break;
-            case "about": print("SnowyOS v2.0 — Browser-native OS concept\nBuilt with vanilla HTML, CSS, JS\nZero dependencies. Pure frost.", "var(--accent-2)"); break;
+            case "help": print("Commands: help, about, time, date, ls, cat, echo, clear, neofetch, uptime, whoami, uname, pwd, calc, fortune, cowsay, matrix, hack, color, ip, ping, roll, joke", "var(--warning)"); break;
+            case "about": print("SnowyOS v3.0 — Browser-native OS concept\nBuilt with vanilla HTML, CSS, JS\nZero dependencies. Pure frost.", "var(--accent-2)"); break;
             case "time": print(new Date().toLocaleTimeString()); break;
             case "date": print(new Date().toLocaleDateString()); break;
             case "whoami": print("guest"); break;
@@ -404,13 +559,18 @@
             case "cat": if (args[0]) { var content = VFS.read("/Documents/" + args[0]); print(content || "cat: " + args[0] + ": No such file"); } else print("cat: missing operand"); break;
             case "echo": print(args.join(" ")); break;
             case "clear": output.innerHTML = ""; break;
-            case "neofetch": print("   ◆◆◆   guest@snowy\n  ◆   ◆  ──────────\n ◆ ◆◆◆ ◆ OS: SnowyOS 2.0\n  ◆   ◆  Host: Browser\n   ◆◆◆   Kernel: Vanilla JS\n             Shell: SnowyTerm\n             Resolution: " + window.innerWidth + "x" + window.innerHeight + "\n             Theme: " + Settings.get("theme") + "\n             Windows: " + WM.windows.size, "var(--accent)"); break;
+            case "neofetch": print("   ◆◆◆   guest@snowy\n  ◆   ◆  ──────────\n ◆ ◆◆◆ ◆ OS: SnowyOS 3.0\n  ◆   ◆  Host: Browser\n   ◆◆◆   Kernel: Vanilla JS\n             Shell: SnowyTerm\n             Resolution: " + window.innerWidth + "x" + window.innerHeight + "\n             Theme: " + Settings.get("theme") + "\n             Windows: " + WM.windows.size, "var(--accent)"); break;
             case "fortune": var fortunes = ["A beautiful, smart, and loving person will be coming into your life.", "A dubious friend may be an enemy in camouflage.", "A faithful friend is a strong defense.", "A fresh start will put you on your way."]; print(fortunes[Math.floor(Math.random() * fortunes.length)]); break;
             case "cowsay": var msg = args.join(" ") || "Moo!"; var line = "─".repeat(msg.length + 2); print(" ┌" + line + "┐\n │ " + msg + " │\n └" + line + "┘\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\       )\\/\\\n                ||----w |\n                ||     ||"); break;
             case "calc": try { print("= " + eval(args.join(""))); } catch(ex) { print("Invalid expression"); } break;
             case "matrix": for (var i = 0; i < 5; i++) { var row = ""; for (var j = 0; j < 40; j++) row += String.fromCharCode(0x30A0 + Math.random() * 96); print(row, "#0f0"); } break;
             case "hack": print("Initializing hack sequence...", "var(--danger)"); setTimeout(function() { print("Bypassing firewall...", "var(--warning)"); }, 500); setTimeout(function() { print("Accessing mainframe...", "var(--warning)"); }, 1000); setTimeout(function() { print("Downloading all the cookies...", "var(--accent)"); }, 1500); setTimeout(function() { print("Just kidding. This is a sandbox.", "var(--success)"); }, 2000); break;
             case "color": var colors = ["#ff7b7b", "#ffd97b", "#7bfd7b", "#7bf1ff", "#c7a7ff", "#ff7bc6"]; print(colors.map(function(c2) { return '<span style="color:' + c2 + '">████</span>'; }).join(" ")); break;
+            case "ip": print("192.168.1." + Math.floor(Math.random() * 254 + 1)); break;
+            case "ping": var host = args[0] || "snowy.os"; print("PING " + host + ": 64 bytes, time=" + Math.floor(Math.random() * 50 + 10) + "ms"); break;
+            case "date": print(new Date().toLocaleDateString()); break;
+            case "roll": var sides = parseInt(args[0]) || 6; print("🎲 Rolled a " + sides + "-sided die: " + Math.floor(Math.random() * sides + 1)); break;
+            case "joke": var jokes = ["Why do programmers prefer dark mode? Because light attracts bugs.", "I told my computer I needed a break. Now it won't stop sending me Kit-Kat ads.", "Why do Java developers wear glasses? Because they can't C#.", "A SQL query walks into a bar, sees two tables, and asks... 'Can I JOIN you?'"]; print(jokes[Math.floor(Math.random() * jokes.length)]); break;
             default: print("Command not found: " + co + ". Type 'help' for available commands.", "var(--danger)");
           }
           input.scrollIntoView();
@@ -467,7 +627,7 @@
       html += '</div></div>';
       html += '<div class="settings-section"><h3>Profile</h3><div class="settings-row"><label>Username</label><input type="text" id="setting-username" value="' + s.username + '" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:var(--panel);color:var(--text);font-family:inherit;width:120px"></div></div>';
       html += '<div class="settings-section"><h3>System</h3>';
-      html += '<div class="settings-row"><label>Version</label><span class="muted">SnowyOS 2.0.0</span></div>';
+      html += '<div class="settings-row"><label>Version</label><span class="muted">SnowyOS 3.0.0</span></div>';
       html += '<div class="settings-row"><label>Build</label><span class="muted">' + new Date().toISOString().slice(0, 10) + '</span></div>';
       html += '<div class="settings-row"><label>Engine</label><span class="muted">Vanilla JS</span></div>';
       html += '<div class="settings-row"><label>Windows Open</label><span class="muted" id="setting-win-count">' + WM.windows.size + '</span></div>';
@@ -850,6 +1010,189 @@
     }
   };
 
+  AppRenderers.weather = {
+    title: "Weather", window: { width: 420, height: 440 },
+    render: function() {
+      var conditions = [
+        { icon: "☀️", temp: 72, desc: "Sunny", feels: 74, humidity: 45, wind: 8 },
+        { icon: "⛅", temp: 65, desc: "Partly Cloudy", feels: 63, humidity: 55, wind: 12 },
+        { icon: "🌧", temp: 58, desc: "Light Rain", feels: 55, humidity: 78, wind: 15 },
+        { icon: "❄", temp: 27, desc: "Snow Flurries", feels: 23, humidity: 82, wind: 18 },
+        { icon: "⛈", temp: 61, desc: "Thunderstorm", feels: 58, humidity: 85, wind: 25 }
+      ];
+      var forecast = [];
+      var days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      for (var i = 0; i < 5; i++) {
+        forecast.push({ day: days[i], icon: conditions[Math.floor(Math.random() * conditions.length)].icon, high: 55 + Math.floor(Math.random() * 25), low: 40 + Math.floor(Math.random() * 15) });
+      }
+      var current = conditions[Math.floor(Math.random() * conditions.length)];
+      var html = '<div class="weather-app">';
+      html += '<div class="weather-today">';
+      html += '<div class="weather-icon">' + current.icon + '</div>';
+      html += '<div class="weather-temp">' + current.temp + '°F</div>';
+      html += '<div class="weather-desc">' + current.desc + '</div>';
+      html += '<div style="display:flex;justify-content:center;gap:16px;font-size:12px;color:var(--muted);margin-top:8px">';
+      html += '<div>Feels like ' + current.feels + '°F</div><div>Humidity: ' + current.humidity + '%</div><div>Wind: ' + current.wind + ' mph</div>';
+      html += '</div></div>';
+      html += '<div style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin:16px 0 8px">5-Day Forecast</div>';
+      html += '<div class="weather-forecast">';
+      forecast.forEach(function(f) {
+        html += '<div class="forecast-day"><div class="day-name">' + f.day + '</div><div class="day-icon">' + f.icon + '</div><div class="day-temp">' + f.high + '° / ' + f.low + '°</div></div>';
+      });
+      html += '</div></div>';
+      return html;
+    }
+  };
+
+  AppRenderers.photos = {
+    title: "Photos", window: { width: 480, height: 400 },
+    render: function() {
+      var photos = [
+        { emoji: "🏔", name: "Mountains", color: "linear-gradient(135deg, #667eea, #764ba2)" },
+        { emoji: "🌊", name: "Ocean", color: "linear-gradient(135deg, #7bf1ff, #58a6ff)" },
+        { emoji: "🌅", name: "Sunset", color: "linear-gradient(135deg, #ff9a76, #ff7b7b)" },
+        { emoji: "🌲", name: "Forest", color: "linear-gradient(135deg, #7bffb5, #22c55e)" },
+        { emoji: "🌸", name: "Cherry Blossoms", color: "linear-gradient(135deg, #ff7bc6, #c7a7ff)" },
+        { emoji: "🏜", name: "Desert", color: "linear-gradient(135deg, #ffd97b, #ff9a76)" },
+        { emoji: "❄", name: "Snow", color: "linear-gradient(135deg, #e8edf3, #7bf1ff)" },
+        { emoji: "🌌", name: "Galaxy", color: "linear-gradient(135deg, #c7a7ff, #7bf1ff)" },
+        { emoji: "🍂", name: "Autumn", color: "linear-gradient(135deg, #ff9a76, #ffd97b)" }
+      ];
+      var html = '<div style="margin-bottom:12px;font-size:14px;font-weight:600">📸 Gallery (' + photos.length + ' photos)</div>';
+      html += '<div class="photos-grid">';
+      photos.forEach(function(p) {
+        html += '<div class="photo-thumb" style="background:' + p.color + '" title="' + p.name + '">' + p.emoji + '</div>';
+      });
+      html += '</div>';
+      return html;
+    },
+    init: function(win) {
+      win.body.querySelectorAll(".photo-thumb").forEach(function(thumb) {
+        thumb.onclick = function() { toast("Viewing: " + thumb.title); };
+      });
+    }
+  };
+
+  AppRenderers.tasks = {
+    title: "Tasks", window: { width: 400, height: 460 },
+    render: function() {
+      var tasks = JSON.parse(localStorage.getItem("snowy-tasks") || '[]');
+      var html = '<div style="display:flex;gap:8px;margin-bottom:16px">';
+      html += '<input type="text" id="task-input" placeholder="Add a new task..." style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:var(--panel);color:var(--text);font-family:inherit">';
+      html += '<button class="game-btn" id="task-add">Add</button>';
+      html += '</div>';
+      html += '<div id="task-list">';
+      if (tasks.length === 0) {
+        html += '<div class="muted" style="text-align:center;padding:24px">No tasks yet. Add one above!</div>';
+      } else {
+        tasks.forEach(function(t, i) {
+          html += '<div class="task-item' + (t.done ? ' done' : '') + '" data-idx="' + i + '">';
+          html += '<input type="checkbox" ' + (t.done ? 'checked' : '') + ' class="task-check">';
+          html += '<span class="task-text">' + t.text + '</span>';
+          html += '<button class="task-delete" data-idx="' + i + '">×</button>';
+          html += '</div>';
+        });
+      }
+      html += '</div>';
+      html += '<div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">' + tasks.filter(function(t) { return t.done; }).length + ' of ' + tasks.length + ' tasks completed</div>';
+      return html;
+    },
+    init: function(win) {
+      function saveTasks(tasks) { localStorage.setItem("snowy-tasks", JSON.stringify(tasks)); }
+      function refresh() {
+        var newWin = AppRenderers.tasks.render();
+        win.body.innerHTML = newWin;
+        AppRenderers.tasks.init(win);
+      }
+      var input = win.body.querySelector("#task-input");
+      var addBtn = win.body.querySelector("#task-add");
+      function addTask() {
+        var text = input.value.trim();
+        if (!text) return;
+        var tasks = JSON.parse(localStorage.getItem("snowy-tasks") || '[]');
+        tasks.push({ text: text, done: false });
+        saveTasks(tasks);
+        input.value = "";
+        refresh();
+        toast("Task added!", 1500);
+      }
+      addBtn.onclick = addTask;
+      input.onkeydown = function(e) { if (e.key === "Enter") addTask(); };
+      win.body.querySelectorAll(".task-check").forEach(function(check) {
+        check.onchange = function() {
+          var idx = parseInt(check.closest(".task-item").dataset.idx);
+          var tasks = JSON.parse(localStorage.getItem("snowy-tasks") || '[]');
+          tasks[idx].done = check.checked;
+          saveTasks(tasks);
+          refresh();
+        };
+      });
+      win.body.querySelectorAll(".task-delete").forEach(function(btn) {
+        btn.onclick = function() {
+          var idx = parseInt(btn.dataset.idx);
+          var tasks = JSON.parse(localStorage.getItem("snowy-tasks") || '[]');
+          tasks.splice(idx, 1);
+          saveTasks(tasks);
+          refresh();
+          toast("Task deleted", 1500);
+        };
+      });
+    }
+  };
+
+  AppRenderers.clock = {
+    title: "Clock", window: { width: 320, height: 380 },
+    render: function() {
+      return '<div class="clock-app"><canvas id="clock-canvas" width="220" height="220"></canvas><div class="clock-digital" id="clock-digital"></div><div class="clock-date-str" id="clock-date-str"></div><div class="clock-tz" id="clock-tz">Local Time</div></div>';
+    },
+    init: function(win) {
+      var canvas = win.body.querySelector("#clock-canvas");
+      var ctx = canvas.getContext("2d");
+      var digitalEl = win.body.querySelector("#clock-digital");
+      var dateEl = win.body.querySelector("#clock-date-str");
+      var tzEl = win.body.querySelector("#clock-tz");
+      var intv;
+      function draw() {
+        if (!document.body.contains(canvas)) { clearInterval(intv); return; }
+        var now = new Date();
+        var cx = 110, cy = 110, r = 100;
+        ctx.clearRect(0, 0, 220, 220);
+        var grad = ctx.createRadialGradient(cx, cy, 40, cx, cy, r);
+        grad.addColorStop(0, "rgba(10,14,20,0.9)"); grad.addColorStop(1, "rgba(5,7,13,0.98)");
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = grad; ctx.fill();
+        ctx.strokeStyle = "rgba(123,241,255,0.4)"; ctx.lineWidth = 2; ctx.stroke();
+        for (var i = 0; i < 60; i++) {
+          var ang = (i / 60) * Math.PI * 2 - Math.PI / 2;
+          var isMajor = i % 5 === 0;
+          var inner = isMajor ? r - 14 : r - 8;
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(ang) * inner, cy + Math.sin(ang) * inner);
+          ctx.lineTo(cx + Math.cos(ang) * (r - 3), cy + Math.sin(ang) * (r - 3));
+          ctx.strokeStyle = isMajor ? "rgba(123,241,255,0.8)" : "rgba(123,241,255,0.25)";
+          ctx.lineWidth = isMajor ? 2 : 1; ctx.stroke();
+        }
+        var hr = now.getHours() % 12, min = now.getMinutes(), sec = now.getSeconds();
+        function hand(angle, length, width, color, glow) {
+          ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle);
+          if (glow) { ctx.shadowBlur = 12; ctx.shadowColor = color; }
+          ctx.beginPath(); ctx.moveTo(0, 8); ctx.lineTo(0, -length);
+          ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = "round"; ctx.stroke();
+          ctx.restore();
+        }
+        hand((hr / 12 + min / 720) * Math.PI * 2 - Math.PI / 2, 60, 4, "rgba(233,241,255,0.9)", false);
+        hand((min / 60 + sec / 3600) * Math.PI * 2 - Math.PI / 2, 80, 3, "rgba(123,241,255,0.95)", true);
+        hand(sec / 60 * Math.PI * 2 - Math.PI / 2, 85, 1.5, "#ff7bc6", true);
+        ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#ff7bc6"; ctx.fill();
+        digitalEl.textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        dateEl.textContent = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+        tzEl.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "Local Time";
+      }
+      draw(); intv = setInterval(draw, 1000);
+    }
+  };
+
   setInterval(function() {
     var cpu = Math.floor(24 + Math.random() * 40);
     var cpuEl = document.getElementById("cpu"); if (cpuEl) cpuEl.textContent = cpu + "%";
@@ -863,6 +1206,7 @@
   });
 
   Notifications.render(); populateStartMenu();
+  Spotlight.init(); DesktopIcons.render();
 
   var savedBrightness = Settings.get("brightness");
   if (savedBrightness) { document.body.style.filter = "brightness(" + (savedBrightness / 100) + ")"; var br = document.getElementById("range-brightness"); if (br) br.value = savedBrightness; }

@@ -164,6 +164,10 @@
       <button class="dock-icon" data-app="music">🎵<span>Music</span></button>
       <button class="dock-icon" data-app="calendar">📅<span>Calendar</span></button>
       <button class="dock-icon" data-app="sysmon">📊<span>Monitor</span></button>
+      <button class="dock-icon" data-app="weather">🌤<span>Weather</span></button>
+      <button class="dock-icon" data-app="photos">🖼<span>Photos</span></button>
+      <button class="dock-icon" data-app="tasks">✅<span>Tasks</span></button>
+      <button class="dock-icon" data-app="clock">🕐<span>Clock</span></button>
     </section>
   </main>
 
@@ -211,10 +215,31 @@
 
   <div class="context-menu" id="context-menu"></div>
 
+  <div class="icon-layer" id="icon-layer"></div>
+
+  <div class="spotlight" id="spotlight">
+    <div class="spotlight-inner">
+      <div class="spotlight-bar">
+        <span class="spotlight-icon">⌕</span>
+        <input type="text" id="spotlight-input" placeholder="Search apps, run commands..." autocomplete="off">
+        <span class="spotlight-hint">ESC to close</span>
+      </div>
+      <div class="spotlight-results" id="spotlight-results"></div>
+    </div>
+  </div>
+
   <div class="window-layer" id="windows"></div>
 
   <template id="window-template">
     <div class="window">
+      <div class="rh" data-dir="n"></div>
+      <div class="rh" data-dir="s"></div>
+      <div class="rh" data-dir="e"></div>
+      <div class="rh" data-dir="w"></div>
+      <div class="rh" data-dir="nw"></div>
+      <div class="rh" data-dir="ne"></div>
+      <div class="rh" data-dir="sw"></div>
+      <div class="rh" data-dir="se"></div>
       <div class="window-bar">
         <div class="window-dots">
           <button class="dot close"></button>
