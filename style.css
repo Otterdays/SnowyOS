@@ -1995,6 +1995,32 @@ input[type="range"] {
   .control-center { width: calc(100vw - 40px); right: 20px; }
 }
 
+/* ── Games v0.1.0 ── */
+.game-version {
+  font-size: 10px;
+  color: var(--accent);
+  background: rgba(123, 241, 255, 0.1);
+  border: 1px solid rgba(123, 241, 255, 0.2);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+}
+.game-level-bar {
+  text-align: center;
+  margin-bottom: 6px;
+}
+.mine-difficulty {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.mine-diff.active {
+  background: rgba(123, 241, 255, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ── Resize handles ── */
 .rh {
   position: absolute;
